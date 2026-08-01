@@ -56,9 +56,11 @@ foreach ($f in $files) {
     }
 
     $base = [IO.Path]::GetFileNameWithoutExtension($f.Name)
+    $base = $base -replace '(?i)\.(jpe?g|png|bmp)$', ''   # 二重拡張子の正規化（例 std-005_01.jpg.jpeg → std-005_01）
     $code = $map[$f.Name.ToLower()]; if (-not $code) { $code = $map[$base.ToLower()] }
     if ($MapCsv -and -not $code) { $unmapped += $f.Name }
     $outName = if ($code) { "$code.jpg" } else { "$base.jpg" }
+    $outName = $outName.ToLower()   # Pages のURLは大文字小文字を区別するため小文字に統一
     if ($seen.ContainsKey($outName.ToLower())) {
       Write-Warning "出力名が重複するためスキップ: $($f.FullName) -> $outName（別フォルダに同名ファイルあり。リネームするか対応表で商品コードを分けてください）"
       continue
