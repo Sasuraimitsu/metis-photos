@@ -33,12 +33,12 @@ $encParams = New-Object System.Drawing.Imaging.EncoderParameters(1)
 $encParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, [int64]$Quality)
 
 $exts = '.jpg', '.jpeg', '.png', '.bmp'
-$files = Get-ChildItem -Path $Source -File | Where-Object { $exts -contains $_.Extension.ToLower() }
-$heic  = Get-ChildItem -Path $Source -File | Where-Object { $_.Extension -match '(?i)^\.heic$' }
+$files = Get-ChildItem -Path $Source -File -Recurse | Where-Object { $exts -contains $_.Extension.ToLower() }
+$heic  = Get-ChildItem -Path $Source -File -Recurse | Where-Object { $_.Extension -match '(?i)^\.heic$' }
 if ($heic) { Write-Warning ("HEIC は変換できません（iPhone側でJPEG書き出しが必要）: " + (($heic | ForEach-Object Name) -join ', ')) }
-if (-not $files) { Write-Host "変換対象がありません（$Source に jpg/png/bmp を入れてください）"; return }
+if (-not $files) { Write-Host "変換対象がありません（$Source に jpg/png/bmp を入れてください。サブフォルダ内も探索します）"; return }
 
-$done = 0; $unmapped = @()
+$done = 0; $unmapped = @(); $seen = @{}
 foreach ($f in $files) {
   $img = [System.Drawing.Image]::FromFile($f.FullName)
   try {
@@ -55,6 +55,17 @@ foreach ($f in $files) {
       }
     }
 
+    $base = [IO.Path]::GetFileNameWithoutExtension($f.Name)
+    $code = $map[$f.Name.ToLower()]; if (-not $code) { $code = $map[$base.ToLower()] }
+    if ($MapCsv -and -not $code) { $unmapped += $f.Name }
+    $outName = if ($code) { "$code.jpg" } else { "$base.jpg" }
+    if ($seen.ContainsKey($outName.ToLower())) {
+      Write-Warning "出力名が重複するためスキップ: $($f.FullName) -> $outName（別フォルダに同名ファイルあり。リネームするか対応表で商品コードを分けてください）"
+      continue
+    }
+    $seen[$outName.ToLower()] = $true
+    $outPath = Join-Path $Dest $outName
+
     $scale = [Math]::Min(1.0, $MaxEdge / [double][Math]::Max($img.Width, $img.Height))
     $nw = [Math]::Max(1, [int][Math]::Round($img.Width * $scale))
     $nh = [Math]::Max(1, [int][Math]::Round($img.Height * $scale))
@@ -67,12 +78,6 @@ foreach ($f in $files) {
       $g.SmoothingMode     = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
       $g.DrawImage($img, 0, 0, $nw, $nh)
     } finally { $g.Dispose() }
-
-    $base = [IO.Path]::GetFileNameWithoutExtension($f.Name)
-    $code = $map[$f.Name.ToLower()]; if (-not $code) { $code = $map[$base.ToLower()] }
-    if ($MapCsv -and -not $code) { $unmapped += $f.Name }
-    $outName = if ($code) { "$code.jpg" } else { "$base.jpg" }
-    $outPath = Join-Path $Dest $outName
 
     try { $bmp.Save($outPath, $jpegCodec, $encParams) } finally { $bmp.Dispose() }
     $kb = [Math]::Round((Get-Item $outPath).Length / 1KB)
