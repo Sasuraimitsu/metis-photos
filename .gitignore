@@ -1,0 +1,9 @@
+# 元写真（リサイズ前・EXIF付き）は公開しない
+inbox/
+*.heic
+*.HEIC
+
+# OSごみ
+Thumbs.db
+desktop.ini
+.DS_Store
