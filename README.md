@@ -1,6 +1,6 @@
 # metis-photos — 商品写真の公開置き場
 
-METIS B2B受注システム（system5）の注文サイトに表示する**商品写真専用**の公開リポジトリです。
+METIS B2B受注システム（system5）の注文サイトに表示する**商品写真**と、注文サイトの雰囲気づくりに使う**イメージ画像（`site/` フォルダ）**の公開リポジトリです。
 GitHub Pages で CDN 配信します（設計：`docs/system5_B2B受注/設計/スタック選定.md` §A1-3）。
 
 - 配信URL：`https://sasuraimitsu.github.io/metis-photos/<ファイル名>`
@@ -38,6 +38,26 @@ pwsh -File tools/resize.ps1 -MapCsv tools/map.csv
 #   IMG_1234.jpg,S2-001
 #   IMG_1235.jpg,S2-002
 ```
+
+## サイト用イメージ画像（`site/`）
+
+- 中身：注文サイトの売り場（ゾーン）の雰囲気づくりに使う **AI 生成のイメージ画像**（2026-11-10 追加・22枚）。**商品写真ではない**。
+- 配信URL：`https://sasuraimitsu.github.io/metis-photos/site/<用途キー>.jpg`
+  - system5 は `設定_連携.写真ベースURL` ＋ `site/` ＋ 用途キー ＋ `.jpg` で引く（設定の追加は不要）
+- ファイル名＝**用途キー（小文字）.jpg**（上の掟3「ファイル名＝商品コード」の例外）：
+  hero / uni_zone / uni_yellow / uni_red / uni_purple / tuna_zone / tuna_wild / tuna_farmed /
+  brand_tai / brand_kanpachi / brand_buri / brand_salmon / brand_shimaaji / brand_hirame /
+  oyster_zone / oyster_1〜oyster_5 / catalog / market
+- 決まり：
+  1. **商品カードには使わない**（商品カードは実物の写真だけ）。商品の実物・産地・ブランド・天然／養殖の証明として見せない。
+  2. 画像の中に文字・ロゴ・実在ブランドの箱を入れない。push 前に目視する（掟2と同じ）。
+  3. 用途・説明文の一覧表（CSV）は**ここに置かない**（掟1）。一覧は非公開の metis-catalog 側で持つ。
+  4. 差し替えは同名で上書き（URL が変わらない）。用途キーを足す・やめるときは system5 の担当へ連絡する。
+- 作り方：**元データ（PNG）を元の解像度のまま**変換する。引き伸ばした大きな版は使わない（細部は増えず、重くなるだけ）。
+  ```powershell
+  pwsh -File tools/resize.ps1 -Source <元データ PNG のフォルダ> -Dest site -MaxEdge 2000
+  ```
+  resize.ps1 は拡大しないので、長辺 2000px 以下の元データは元の大きさのまま・品質80 になる（1枚 200〜300KB が目安）。
 
 ## 注意
 
